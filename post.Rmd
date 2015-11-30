@@ -1,0 +1,316 @@
+---
+title: "Can You Solve Dead Drop in the First Round?"
+author: "Matthew Sedlar"
+date: "November 24, 2015"
+output: html_document
+---
+
+Dead Drop is a fantastic card game by AUTHOR with a relatively simple premise. There is a deck of 13 cards. Most of the cards are distributed between the players, who are then tasked with keeping their hands a secret. Of the few remaining cards, one, known as the "dead drop", is placed down in front of the players and the rest, known as "the stash" are placed face up. The goal: Be the first player to correctly guess the number on the "dead drop" card.
+
+The game deck consists of four 0s, three 1s, two 2s, two 3s, one 4, and one 5. Or... 
+
+```{r echo=FALSE, message=FALSE}
+
+# full Dead Drop deck
+full.deck <- c(rep(0,4),rep(1,3),rep(2,2),rep(3,2),4,5)
+
+deck.matrix <- matrix(c(4,3,2,2,1,1), ncol=6, byrow=T)
+colnames(deck.matrix) <- c(0:5)
+rownames(deck.matrix) <- "Number of Cards"
+
+library(knitr)
+kable(deck.matrix)
+
+```
+
+In a three-person game, for example, each player receives three cards, three cards are placed in the stash, and the dead drop is placed facedown. That means at the very beginning of the game, you, player one, know the "identities" of six cards in the deck. As the game progresses, you obtain intel on the cards the other players hold by taking one of three actions during your turn:
+
+* **Share Info**: Trade one card from your hand with one card from any other player.
+* **Swap the Stash**: Trade one card from your hand with one card in the stash.
+* **Sell Secrets**: Reveal two cards in your hand to another player, who must respond whether or not he/she is carrying a card equal to the sum of your two cars. Example, I show a 1 and 2 to player two. If player two has a 3, he/she is forced to hand that card to me in exchange for one of the cards I revealed.
+
+The game is purely about deduction based on information gathering. What I wanted to explore is by knowing almost half the cards in the deck at the beginning of the first round, could you accurately guess the dead drop at the beginning of the game? 
+
+To do that, I created a Dead Drop simulation script in R (skip if you are more interested in the results). It consists of two functions. One, simulate.game(), creates a deck and distributes cards to each player, the stash, and the dead drop. The second function, remove.values(), removes the cards from the deck after each hand is distributed. Then I use set.seed() to make sure my outcomes are the same each time I run the script. Finally, I run the simulation and store the results in the object `game1`.
+
+```{r message=FALSE}
+
+# function to remove draws from the deck
+
+remove.values <- function(x,y) {
+  indices <- c()
+  # in the instance three zeroes or three ones are dealt
+  if(identical(x,c(0,0,0))) {
+    indices <- c(1,2,3)
+  } else if(identical(x,c(1,1,1))) {
+    indices <- c(5,6,7)
+  } else {
+    # for everything else
+    for(i in 1:length(x)) {
+      index <- grep(x[i],y)
+      if(index %in% indices) {
+        indices <- c(tail(index,n=1),indices)
+      } else { indices <- c(index[1],indices) }
+    }
+  }
+  print(indices)
+}
+
+# function to simulate the game
+simulate.game <- function() {
+
+  deck <- c(rep(0,4),rep(1,3),rep(2,2),rep(3,2),4,5)
+  # player1's hand
+  player1 <- sample(deck,3,replace = F)
+  deck <- deck[-remove.values(player1,deck)]
+  # the stash
+  stash <- sample(deck,3,replace = F)
+  deck <- deck[-remove.values(stash,deck)]
+  # player2's hand
+  player2 <- sample(deck,3,replace = F)
+  deck <- deck[-remove.values(player2,deck)]
+  # player 3's hand
+  player3 <- sample(deck,3,replace = F)
+  deck <- deck[-remove.values(player3,deck)]
+  # function outcome is a list of all results
+  list(player1 = player1, player2 = player2, player3 = player3,
+       stash = stash, drop = deck)
+}
+
+```
+
+```{r warning=FALSE, eval=FALSE}
+set.seed(13)
+game1 <- simulate.game()
+
+```
+
+```{r warning=FALSE, include=FALSE}
+set.seed(13)
+game1 <- simulate.game()
+
+```
+
+Let's walk through the game simulated above. You are dealt `r game1$player1`. The stash is `r game1$stash`. Since 4 and 5 are on display, you can immediately rule those out as the dead drop. Seems like a 0, 1 or 2 would be pretty likely and a 3 would be less likely, right?
+
+There are two ways to find out: The complicated way and the easy way. 
+
+### The Complicated Way: Bayes' Theorem
+
+Bayes' Theorem relies on three variables.
+
+$$P(A|B)=\frac{P(A)P(B|A)}{P(B)}$$
+
+* $P(A)$: The probability of A occurring.
+* $P(B|A)$: The probability of A occurring if B occurs
+* $P(B)$: The probability of B occurring.
+
+Putting those into the formula gives us the probability of A occurring if B occurs. Already confused? How about an example: What is the probability of the dead drop being a zero if we are dealt two zeroes? This is displayed as $P(A|B)$ where A is the dead drop being zero and B is being dealt two zeros. 
+
+The formula above tells us we need to know the $P(A)$ or probability of the dead drop being zero. Ignoring any other information, the probability would be $\frac{4}{13}$. There are four 0s in the deck and 13 cards total.
+
+Next we need to know the probability of seeing two zeroes if the dead drop were zero. This is slightly complicated if you're not familiar with combinations. In this scenario, the dead drop is accounted for, which leaves us 12 cards in the deck. We only get to see 6 of these cards. We use this formula the figure all the possible combinations.
+
+$${12 \choose 6} = \frac{12!}{6!(12-6)!}$$
+
+There are ${12 \choose 6}$ or `r choose(12,6)` ways to choose 6 cards out of 12 and ${3 \choose 2}$ or `r choose(3,2)` ways to choose two zeroes from the remaining number in the deck. That's ${3 \choose 2}/{12 \choose 6}$. So $P(B|A)$ is `r choose(3,2)/choose(12,6)`.
+
+Finally, we need the probability of being dealt two zeroes, $P(B)$. There are ${13 \choose 6}$ or `r choose(13,6)` ways to choose 6 cards out of 13 and ${4 \choose 2}$ or `r choose(4,2)` ways to choose two zeroes. So $P(B)$ is ${4 \choose 2}/{13 \choose 6}$, or `r choose(4,2)/choose(13,6)`.
+
+Let's calculate the probability of the dead drop being a zero based on our information.
+
+```{r}
+
+pA <- 4/13
+pBA <- choose(3,2)/choose(12,6)
+pB <- choose(4,2)/choose(13,6)
+
+paste(round(((pA*pBA)/pB)*100,2),"%",sep="")
+
+```
+
+The method above is a nice way of understanding probability and an introduction to Bayes' Theorem, however, it is totally unnecessary. Because...
+
+### The Easy Way
+
+You can figure out $P(A|B)$ without Bayes' Theorem. At the beginning of the game, the identities of six cards are available to you. You're merely looking for the probability that the dead drop is one of the remaining 0s in the seven cards you don't know anything about. That's $\frac{2}{7}$ or `r paste(round((2/7)*100,2),"%",sep="")`.
+
+Why did I give such a detailed description of the complicated method above? First, it's always good to know your options. Second, the wonderful thing about mathematics (and programming, really) is there are always multiple ways to figure out a problem. Bayes' Theorem really comes in handy in many situations, so you should become familiar with it if you already are not.
+
+Now that we've established the probability of the dead drop being a zero, you might also have noticed (using the easy method) that the probabilities of the dead drop being 0, 1, or 2 are all equally likely. How do I know that?
+
+In the R script below, I wrote a function to analyze the game outcomes and spit out the probabilities for each number. I then stored the results in a data frame.
+
+```{r}
+
+calculate.probs <- function(l,x) {
+  # information available to the player
+  available <- c(l$player1, l$stash)
+  # the number we want to run prob on 
+  number <- table(grepl(x,available))[2]
+  if(is.na(number)) { number <- 0 }
+  # how many are normally in the deck
+  normal <- table(full.deck)[x+1]
+  pA <- normal/13
+  pBA <- choose(normal-1,number)/choose(12,6)
+  pB <- choose(normal,number)/choose(13,6)
+  bayes.theorem(pA,pBA,pB)
+}
+
+bayes.theorem <- function(x,y,z) { round(((x*y)/z)*100,2) }
+
+game.results <- data.frame(prob0=calculate.probs(game1,0),
+                           prob1=calculate.probs(game1,1),
+                           prob2=calculate.probs(game1,2),
+                           prob3=calculate.probs(game1,3),
+                           prob4=calculate.probs(game1,4),
+                           prob5=calculate.probs(game1,5),
+                           deaddrop=game1$drop)
+
+```
+
+It looks a little like this.
+
+```{r echo=FALSE, message=FALSE}
+
+game1.matrix <- matrix(c(paste(calculate.probs(game1,0),"%",sep=""),
+                         paste(calculate.probs(game1,1),"%",sep=""),
+                         paste(calculate.probs(game1,2),"%",sep=""),
+                         paste(calculate.probs(game1,3),"%",sep=""),
+                         calculate.probs(game1,4),
+                         calculate.probs(game1,5)),ncol=6,byrow=T)
+colnames(game1.matrix) <- c(0:5)
+rownames(game1.matrix) <- "Probability"
+
+kable(game1.matrix, caption="Probabilities of Cards Being the Dead Drop")
+
+```
+
+**SPOILER ALERT**: The dead drop in this game is `r game1$drop`. So while probability helped us narrow down the potential candidates, it didn't point a big, flashing arrow at the card we were looking for. What if I simulated 99 more games? Perhaps we'll get an idea of how accurate this method is over a larger sample size.
+
+```{r warning=FALSE, eval=FALSE}
+
+# set.seed for reproducing my simulations
+set.seed(50)
+# this runs the simulate game function 100 times and stores the results in an object
+simulations <- replicate(99,simulate.game())
+
+# now I'm going to loop through the results and bind them to my data frame
+x <- 1
+while(x <= 99){
+  game.results <- rbind(game.results,
+                        c(calculate.probs(simulations[,x],0),
+                          calculate.probs(simulations[,x],1),
+                          calculate.probs(simulations[,x],2),
+                          calculate.probs(simulations[,x],3),
+                          calculate.probs(simulations[,x],4),
+                          calculate.probs(simulations[,x],5),
+                          simulations[,x]$drop))
+  x <- x + 1
+}
+
+```
+
+```{r warning=FALSE, include=FALSE}
+
+# set.seed for reproducing my simulations
+set.seed(50)
+# this runs the simulate game function 100 times and stores the results in an object
+simulations <- replicate(99,simulate.game())
+
+# now I'm going to loop through the results and bind them to my data frame
+x <- 1
+while(x <= 99){
+  game.results <- rbind(game.results,
+                        c(calculate.probs(simulations[,x],0),
+                          calculate.probs(simulations[,x],1),
+                          calculate.probs(simulations[,x],2),
+                          calculate.probs(simulations[,x],3),
+                          calculate.probs(simulations[,x],4),
+                          calculate.probs(simulations[,x],5),
+                          simulations[,x]$drop))
+  x <- x + 1
+}
+
+```
+
+Now I want to answer three questions with these simulated games. 
+
+* What is the probability of success using the methods described above to approximate the dead drop?
+* What is the probability of success using the methods above to successfully to guess the dead drop?
+* What is the probability of success using the method of picking a random number to successfully guess the dead drop?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# Looking at whether dead drop is included in predictions
+
+game.results$predictor <- apply(game.results,1,function(x) which(x==max(x)))
+
+deaddrop.predicted <- function(x,y) {
+  (y + 1) %in% x[[1]]
+}
+
+deaddrop.true <- function(x,y) {
+  if(length(x) > 1) { 
+   FALSE
+  } else if(x[1]==y+1) {
+    TRUE
+  } else { FALSE }
+}
+
+predicted <- c()
+true <- c()
+
+for(i in 1:length(game.results$predictor)) {
+  predicted <- c(predicted,deaddrop.predicted(game.results$predictor[i],game.results$deaddrop[i]))
+  true <- c(true, deaddrop.true(game.results$predictor[[i]],game.results$deaddrop[i]))
+}
+
+game.results$predicted <- predicted
+game.results$trueprediction <- true
+
+# Is a random number better at predicting the dead drop?
+
+set.seed(50)
+game.results$random <- sample(full.deck,100, replace=T)
+
+library(dplyr)
+
+game.results <- game.results %>% mutate(randompredicted = (deaddrop == random))
+
+```
+
+Sparing you the gory programming details (although you can find how I did it in my GitHub repository), the answers are surprising.
+
+**What is the probability of success using the methods described above to approximate the dead drop?**
+
+Out of 100 games, using the methods above only correctly pointed towards potential candidates for the dead drop `r table(game.results$predicted)[2]` times. That means only `r table(game.results$predicted)[2]`% of the time you'll be able to narrow down the dead drop card in the first round.  
+
+**What is the probability of success using the methods above to successfully to guess the dead drop?**
+
+Out of 100 games, using the methods above only successfully guessed the dead drop `r table(game.results$trueprediction)[2]` times. That means only `r table(game.results$trueprediction)[2]`% of the time you'll be able to guess the dead drop card in the first round. 
+
+**Finally, what is the probability of success using the method of picking a random number to successfully guess the dead drop?**
+
+This is the shocker. Out of 100 games, using the methods above only successfully guessed the dead drop `r table(game.results$randompredicted)[2]` times. That means you're just as likely to successfully guess the dead drop using the methods I've detailed in this post as you are by picking a random number! 
+
+### Wait ... Don't Walk Away!
+
+That doesn't mean you should abandon the methods I've described and start picking random numbers. The whole point of the game is learning more about the cards on the table and updating your assumptions. Most people, of course, do this in their heads. 
+
+Say in the first round of the very first game I simulated, player two trades a card with you. You now know of an additional card, a `r game1$player2[1]`. If you recall, 0, 1, and 2 were equally likely to be the dead drop. Not anymore!
+
+```{r echo=FALSE, message=FALSE}
+
+updated.game1 <- matrix(c(paste(round(2/6,2)*100,"%",sep=""),
+                          paste(round(2/6,2)*100,"%",sep=""),
+                          paste(round(1/6,2)*100,"%",sep=""),
+                          paste(round(1/6,2)*100,"%",sep=""),0,0), ncol=6, byrow=T)
+colnames(updated.game1) <- c(0:5)
+rownames(updated.game1) <- "Probability"
+
+kable(updated.game1, caption="Updated Probabilities of Cards Being the Dead Drop")
+
+```
+
+If you recall, the dead drop is a `r game1$drop`. If an additional 0 is revealed, you can make a solid guess about the dead drop. (Omnipotent game master here happens to know that player three is holding both of the remaining 0s, but he/she may be hesitant to reveal that in order to keep everyone else guessing.) 
