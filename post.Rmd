@@ -5,7 +5,7 @@ date: "November 24, 2015"
 output: html_document
 ---
 
-Dead Drop is a fantastic card game by AUTHOR with a relatively simple premise. There is a deck of 13 cards. Most of the cards are distributed between the players, who are then tasked with keeping their hands a secret. Of the few remaining cards, one, known as the "dead drop", is placed down in front of the players and the rest, known as "the stash" are placed face up. The goal: Be the first player to correctly guess the number on the "dead drop" card.
+Dead Drop is a fantastic card game by Jason Kotarski with a relatively simple premise. There is a deck of 13 cards. One card, known as the “drop,” is placed face down in front of the players and one card per player is placed face up on the table and referred to collectively as “the stash.” The rest of the cards are distributed between the players, who are then tasked with keeping their hands a secret. The goal: Be the first player to correctly guess the number on the “drop” card. If your guess is wrong, you’re out of the game.
 
 The game deck consists of four 0s, three 1s, two 2s, two 3s, one 4, and one 5. Or... 
 
@@ -314,3 +314,5 @@ kable(updated.game1, caption="Updated Probabilities of Cards Being the Dead Drop
 ```
 
 If you recall, the dead drop is a `r game1$drop`. If an additional 0 is revealed, you can make a solid guess about the dead drop. (Omnipotent game master here happens to know that player three is holding both of the remaining 0s, but he/she may be hesitant to reveal that in order to keep everyone else guessing.) 
+
+So now that you are armed with the knowledge of how Dead Drop works, go forth and have fun. What’s fascinating about this game is that most of us run these calculations in our heads while we’re playing and we don’t even think about it. Of course, if you want to bring a pen and paper or calculator to the table, I won’t judge you.
