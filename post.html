@@ -68,7 +68,7 @@ img {
 </div>
 
 
-<p>Dead Drop is a fantastic card game by AUTHOR with a relatively simple premise. There is a deck of 13 cards. Most of the cards are distributed between the players, who are then tasked with keeping their hands a secret. Of the few remaining cards, one, known as the “dead drop”, is placed down in front of the players and the rest, known as “the stash” are placed face up. The goal: Be the first player to correctly guess the number on the “dead drop” card.</p>
+<p>Dead Drop is a fantastic card game by Jason Kotarski with a relatively simple premise. There is a deck of 13 cards. One card, known as the “drop,” is placed face down in front of the players and one card per player is placed face up on the table and referred to collectively as “the stash.” The rest of the cards are distributed between the players, who are then tasked with keeping their hands a secret. The goal: Be the first player to correctly guess the number on the “drop” card. If your guess is wrong, you’re out of the game.</p>
 <p>The game deck consists of four 0s, three 1s, two 2s, two 3s, one 4, and one 5. Or…</p>
 <table>
 <thead>
@@ -103,23 +103,20 @@ img {
 <p>The game is purely about deduction based on information gathering. What I wanted to explore is by knowing almost half the cards in the deck at the beginning of the first round, could you accurately guess the dead drop at the beginning of the game?</p>
 <p>To do that, I created a Dead Drop simulation script in R (skip if you are more interested in the results). It consists of two functions. One, simulate.game(), creates a deck and distributes cards to each player, the stash, and the dead drop. The second function, remove.values(), removes the cards from the deck after each hand is distributed. Then I use set.seed() to make sure my outcomes are the same each time I run the script. Finally, I run the simulation and store the results in the object <code>game1</code>.</p>
 <pre class="r"><code># function to remove draws from the deck
-
 remove.values &lt;- function(x,y) {
   indices &lt;- c()
-  # in the instance three zeroes or three ones are dealt
-  if(identical(x,c(0,0,0))) {
-    indices &lt;- c(1,2,3)
-  } else if(identical(x,c(1,1,1))) {
-    indices &lt;- c(5,6,7)
-  } else {
-    # for everything else
     for(i in 1:length(x)) {
       index &lt;- grep(x[i],y)
-      if(index %in% indices) {
-        indices &lt;- c(tail(index,n=1),indices)
+      if(index[1] %in% indices) {
+        if(index[2] %in% indices) {
+          if(index[3] %in% indices){
+            if(index[4] %in% indices){
+              indices &lt;- c(index[5],indices)
+            } else { indices &lt;- c(index[4],indices) }
+          } else { indices &lt;- c(index[3],indices) }
+        } else { indices &lt;- c(index[2],indices) }
       } else { indices &lt;- c(index[1],indices) }
-    }
-  }
+    } 
   print(indices)
 }
 
@@ -253,9 +250,9 @@ while(x &lt;= 99){
 </ul>
 <p>Sparing you the gory programming details (although you can find how I did it in my GitHub repository), the answers are surprising.</p>
 <p><strong>What is the probability of success using the methods described above to approximate the dead drop?</strong></p>
-<p>Out of 100 games, using the methods above only correctly pointed towards potential candidates for the dead drop 57 times. That means only 57% of the time you’ll be able to narrow down the dead drop card in the first round.</p>
+<p>Out of 100 games, using the methods above only correctly pointed towards potential candidates for the dead drop 56 times. That means only 56% of the time you’ll be able to narrow down the dead drop card in the first round.</p>
 <p><strong>What is the probability of success using the methods above to successfully to guess the dead drop?</strong></p>
-<p>Out of 100 games, using the methods above only successfully guessed the dead drop 21 times. That means only 21% of the time you’ll be able to guess the dead drop card in the first round.</p>
+<p>Out of 100 games, using the methods above only successfully guessed the dead drop 20 times. That means only 20% of the time you’ll be able to guess the dead drop card in the first round.</p>
 <p><strong>Finally, what is the probability of success using the method of picking a random number to successfully guess the dead drop?</strong></p>
 <p>This is the shocker. Out of 100 games, using the methods above only successfully guessed the dead drop 21 times. That means you’re just as likely to successfully guess the dead drop using the methods I’ve detailed in this post as you are by picking a random number!</p>
 </div>
@@ -289,6 +286,7 @@ while(x &lt;= 99){
 </tbody>
 </table>
 <p>If you recall, the dead drop is a 1. If an additional 0 is revealed, you can make a solid guess about the dead drop. (Omnipotent game master here happens to know that player three is holding both of the remaining 0s, but he/she may be hesitant to reveal that in order to keep everyone else guessing.)</p>
+<p>So now that you are armed with the knowledge of how Dead Drop works, go forth and have fun. What’s fascinating about this game is that most of us run these calculations in our heads while we’re playing and we don’t even think about it. Of course, if you want to bring a pen and paper or calculator to the table, I won’t judge you.</p>
 </div>
 
 

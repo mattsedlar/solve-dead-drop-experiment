@@ -36,23 +36,20 @@ To do that, I created a Dead Drop simulation script in R (skip if you are more i
 ```{r message=FALSE}
 
 # function to remove draws from the deck
-
 remove.values <- function(x,y) {
   indices <- c()
-  # in the instance three zeroes or three ones are dealt
-  if(identical(x,c(0,0,0))) {
-    indices <- c(1,2,3)
-  } else if(identical(x,c(1,1,1))) {
-    indices <- c(5,6,7)
-  } else {
-    # for everything else
     for(i in 1:length(x)) {
       index <- grep(x[i],y)
-      if(index %in% indices) {
-        indices <- c(tail(index,n=1),indices)
+      if(index[1] %in% indices) {
+        if(index[2] %in% indices) {
+          if(index[3] %in% indices){
+            if(index[4] %in% indices){
+              indices <- c(index[5],indices)
+            } else { indices <- c(index[4],indices) }
+          } else { indices <- c(index[3],indices) }
+        } else { indices <- c(index[2],indices) }
       } else { indices <- c(index[1],indices) }
-    }
-  }
+    } 
   print(indices)
 }
 
